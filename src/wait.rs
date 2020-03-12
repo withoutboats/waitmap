@@ -104,7 +104,10 @@ impl<'a, K, V, S, Q> Future for WaitMut<'a, K, V, S, Q> where
                     wakers.replace(ctx.waker().clone(), &mut self.idx);
                     Poll::Pending
                 }
-                Filled(_)        => Poll::Ready(Some(RefMut { inner: entry })),
+                Filled(_)        => {
+                    self.idx = std::usize::MAX;
+                    Poll::Ready(Some(RefMut { inner: entry })),
+                }
             }
             None        => Poll::Ready(None),
         }
