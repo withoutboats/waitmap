@@ -1,6 +1,10 @@
 [package]
 name = "waitmap"
-version = "0.1.0"
+description = "an awaitable concurrent hash map"
+documentation = "https://docs.rs/waitmap"
+repository = "https://github.com/withoutboats/waitmap"
+license = "MIT OR Apache-2.0"
+version = "1.0.0"
 authors = ["Without Boats <woboats@gmail.com>"]
 edition = "2018"
 
