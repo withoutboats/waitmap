@@ -1,0 +1,16 @@
+[package]
+name = "waitmap"
+version = "0.1.0"
+authors = ["Without Boats <woboats@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+parking_lot = "0.10.0"
+smallvec = "1.2.0"
+dashmap = "3.7.0"
+
+[dev-dependencies.async-std]
+version = "1.5.0"
+features = ["unstable"]
