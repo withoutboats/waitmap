@@ -34,3 +34,24 @@ fn simple_waiting() {
 
     task::block_on(handle);
 }
+
+#[test]
+fn simple_waiting_mut() {
+    let map: Arc<WaitMap<String, i32>> = Arc::new(WaitMap::new());
+    let map2 = map.clone();
+
+    let handle = task::spawn(async move {
+        let rosa = map.wait_mut("Rosa Luxemburg").await;
+        assert_eq!(rosa.unwrap().value(), &0);
+        assert!(map.wait_mut("Voltairine de Cleyre").await.is_none());
+    });
+
+    task::spawn(async move {
+        task::sleep(Duration::from_millis(140)).await;
+        map2.insert(String::from("Rosa Luxemburg"), 0);
+        task::sleep(Duration::from_millis(140)).await;
+        map2.cancel("Voltairine de Cleyre");
+    });
+
+    task::block_on(handle);
+}
