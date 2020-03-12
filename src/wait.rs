@@ -106,7 +106,7 @@ impl<'a, K, V, S, Q> Future for WaitMut<'a, K, V, S, Q> where
                 }
                 Filled(_)        => {
                     self.idx = std::usize::MAX;
-                    Poll::Ready(Some(RefMut { inner: entry })),
+                    Poll::Ready(Some(RefMut { inner: entry }))
                 }
             }
             None        => Poll::Ready(None),
