@@ -31,7 +31,6 @@ impl WakerSet {
     pub fn wake(self) {
         for waker in self.wakers {
             if let Some(waker) = waker {
-                println!("waking a waker");
                 waker.wake()
             }
         }

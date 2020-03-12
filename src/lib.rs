@@ -36,7 +36,6 @@ impl<K: Hash + Eq, V, S: BuildHasher + Clone> WaitMap<K, V, S> {
                 match mem::replace(entry.get_mut(), Filled(value)) {
                     Waiting(wakers) => {
                         drop(entry); // drop early to release lock before waking other tasks
-                        println!("waking wakers");
                         wakers.wake();
                         None
                     }

@@ -38,17 +38,15 @@ impl<'a, K, V, S, Q> Future for Wait<'a, K, V, S, Q> where
     type Output = Option<Ref<'a, K, V, S>>;
 
     fn poll(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
-        println!("polling");
         match self.map.get_mut(self.key) {
             Some(mut entry) => match entry.value_mut() {
                 Waiting(wakers)  => {
-                    println!("inserting waker");
                     wakers.replace(ctx.waker().clone(), &mut self.idx);
                     Poll::Pending
                 }
                 Filled(_)        => {
                     let inner = entry.downgrade();
-                    println!("filled!");
+                    self.idx = std::usize::MAX;
                     Poll::Ready(Some(Ref { inner }))
                 }
             }
@@ -63,6 +61,7 @@ impl<'a, K, V, S, Q> Drop for Wait<'a, K, V, S, Q> where
     Q: ?Sized + Hash + Eq,
 {
     fn drop(&mut self) {
+        if self.idx == std::usize::MAX { return; }
         if let Some(mut entry) = self.map.get_mut(self.key) {
             if let Waiting(wakers) = entry.value_mut() {
                 wakers.remove(self.idx);
@@ -118,6 +117,7 @@ impl<'a, K, V, S, Q> Drop for WaitMut<'a, K, V, S, Q> where
     Q: ?Sized + Hash + Eq,
 {
     fn drop(&mut self) {
+        if self.idx == std::usize::MAX { return; }
         if let Some(mut entry) = self.map.get_mut(self.key) {
             if let Waiting(wakers) = entry.value_mut() {
                 wakers.remove(self.idx);
