@@ -1,3 +1,51 @@
+//! Async concurrent hashmap built on top of [dashmap](https://docs.rs/dashmap/).
+//!
+//! # Wait
+//! [`WaitMap`](crate::WaitMap) is a concurrent hashmap with an asynchronous `wait` operation.
+//! ```
+//! # extern crate async_std;
+//! # extern crate waitmap;
+//! # use async_std::main;
+//! # use waitmap::WaitMap;
+//! # #[async_std::main]
+//! # async fn main() -> std::io::Result<()> {
+//! let map: WaitMap<String, i32> = WaitMap::new();
+//! # map.insert(String::from("Rosa Luxemburg"), 1);
+//!
+//! // This will wait until a value is put under the key "Rosa Luxemburg"
+//! if let Some(value) = map.wait("Rosa Luxemburg").await {
+//!     // ...
+//! }
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! Waits are cancellable. Cancelled waits evaluate to `None`.
+//! ```
+//! # extern crate async_std;
+//! # extern crate waitmap;
+//! # use async_std::{main, task};
+//! # use std::sync::Arc;
+//! # use waitmap::WaitMap;
+//! # #[async_std::main]
+//! # async fn main() -> std::io::Result<()> {
+//! let map: Arc<WaitMap<String, String>> = Arc::new(WaitMap::new());
+//! let map1 = map.clone();
+//!
+//! let handle = task::spawn(async move {
+//!     let result = map.wait("Voltairine de Cleyre").await;
+//!     assert!(result.is_none());
+//! });
+//!
+//! task::spawn(async move {
+//!     map1.cancel("Voltairine de Cleyre");
+//! }).await;
+//!
+//! task::block_on(handle);
+//! # Ok(())
+//! # }
+//! ```
+
 mod wait;
 mod waker_set;
 
