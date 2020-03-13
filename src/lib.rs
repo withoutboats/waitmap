@@ -65,17 +65,32 @@ use WaitEntry::*;
 use wait::{Wait, WaitMut};
 use waker_set::WakerSet;
 
+/// An asynchronous concurrent hashmap.
 pub struct WaitMap<K, V, S = RandomState> {
     map: DashMap<K, WaitEntry<V>, S>,
 }
 
 impl<K: Hash + Eq, V> WaitMap<K, V> {
+    /// Make a new `WaitMap` using the default hasher.
     pub fn new() -> WaitMap<K, V> {
         WaitMap { map: DashMap::with_hasher(RandomState::default()) }
     }
 }
 
 impl<K: Hash + Eq, V, S: BuildHasher + Clone> WaitMap<K, V, S> {
+    /// Make a new `WaitMap` using a custom hasher.
+    /// ```
+    /// # extern crate async_std;
+    /// # extern crate waitmap;
+    /// # use async_std::main;
+    /// # use waitmap::WaitMap;
+    /// # use std::collections::hash_map::RandomState;
+    /// # #[async_std::main]
+    /// # async fn main() -> std::io::Result<()> {
+    /// let map: WaitMap<i32, String> = WaitMap::with_hasher(RandomState::new());
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn with_hasher(hasher: S) -> WaitMap<K, V, S> {
         WaitMap { map: DashMap::with_hasher(hasher) }
     }
