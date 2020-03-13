@@ -1,3 +1,4 @@
+mod entry;
 mod wait;
 mod waker_set;
 
@@ -14,6 +15,8 @@ use dashmap::mapref::one;
 use WaitEntry::*;
 use wait::{Wait, WaitMut};
 use waker_set::WakerSet;
+
+pub use entry::{Entry, OccupiedEntry, VacantEntry};
 
 pub struct WaitMap<K, V, S = RandomState> {
     map: DashMap<K, WaitEntry<V>, S>,
@@ -45,6 +48,19 @@ impl<K: Hash + Eq, V, S: BuildHasher + Clone> WaitMap<K, V, S> {
             Vacant(slot)     => {
                 slot.insert(Filled(value));
                 None
+            }
+        }
+    }
+
+    pub fn entry(&self, key: K) -> Entry<'_, K, V, S> {
+        match self.map.entry(key) {
+            Vacant(slot)    => Entry::vacant(slot),
+            Occupied(entry) => {
+                if let Filled(_) = entry.get() {
+                    Entry::occupied(entry)
+                } else {
+                    Entry::waiting(entry)
+                }
             }
         }
     }
@@ -117,6 +133,29 @@ enum WaitEntry<V> {
     Filled(V),
 }
 
+impl<V> WaitEntry<V> {
+    fn value(&self) -> &V {
+        match self {
+            Filled(value)   => value,
+            Waiting(_)      => panic!(),
+        }
+    }
+
+    fn value_mut(&mut self) -> &mut V {
+        match self {
+            Filled(value)   => value,
+            Waiting(_)      => panic!(),
+        }
+    }
+
+    fn into_value(self) -> V {
+        match self {
+            Filled(value)   => value,
+            Waiting(_)      => panic!(),
+        }
+    }
+}
+
 pub struct Ref<'a, K, V, S> {
     inner: one::Ref<'a, K, WaitEntry<V>, S>,
 }
@@ -127,10 +166,7 @@ impl<'a, K: Eq + Hash, V, S: BuildHasher> Ref<'a, K, V, S> {
     }
 
     pub fn value(&self) -> &V {
-        match self.inner.value() {
-            Filled(value)   => value,
-            _               => panic!()
-        }
+        self.inner.value().value()
     }
 
     pub fn pair(&self) -> (&K, &V) {
@@ -148,17 +184,11 @@ impl<'a, K: Eq + Hash, V, S: BuildHasher> RefMut<'a, K, V, S> {
     }
 
     pub fn value(&self) -> &V {
-        match self.inner.value() {
-            Filled(value)   => value,
-            _               => panic!()
-        }
+        self.inner.value().value()
     }
 
     pub fn value_mut(&mut self) -> &mut V {
-        match self.inner.value_mut() {
-            Filled(value)   => value,
-            _               => panic!()
-        }
+        self.inner.value_mut().value_mut()
     }
 
     pub fn pair(&self) -> (&K, &V) {
@@ -166,9 +196,7 @@ impl<'a, K: Eq + Hash, V, S: BuildHasher> RefMut<'a, K, V, S> {
     }
 
     pub fn pair_mut(&mut self) -> (&K, &mut V) {
-        match self.inner.pair_mut() {
-            (key, Filled(value))    => (key, value),
-            _                       => panic!(),
-        }
+        let (key, entry) = self.inner.pair_mut();
+        (key, entry.value_mut())
     }
 }
