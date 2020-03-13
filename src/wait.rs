@@ -10,27 +10,27 @@ use crate::WaitEntry;
 use crate::WaitEntry::*;
 use crate::{Ref, RefMut};
 
-pub struct Wait<'a, K, V, S, Q> where
+pub struct Wait<'a, 'b, K, V, S, Q> where
     K: Hash + Eq + Borrow<Q>,
     S: BuildHasher + Clone,
     Q: ?Sized + Hash + Eq,
 {
     map: &'a DashMap<K, WaitEntry<V>, S>,
-    key: &'a Q,
+    key: &'b Q,
     idx: usize,
 }
 
-impl<'a, K, V, S, Q> Wait<'a, K, V, S, Q> where
+impl<'a, 'b, K, V, S, Q> Wait<'a, 'b, K, V, S, Q> where
     K: Hash + Eq + Borrow<Q>,
     S: BuildHasher + Clone,
     Q: ?Sized + Hash + Eq,
 {
-    pub(crate) fn new(map: &'a DashMap<K, WaitEntry<V>, S>, key: &'a Q) -> Self {
+    pub(crate) fn new(map: &'a DashMap<K, WaitEntry<V>, S>, key: &'b Q) -> Self {
         Wait { map, key, idx: std::usize::MAX }
     }
 }
 
-impl<'a, K, V, S, Q> Future for Wait<'a, K, V, S, Q> where
+impl<'a, 'b, K, V, S, Q> Future for Wait<'a, 'b, K, V, S, Q> where
     K: Hash + Eq + Borrow<Q>,
     S: BuildHasher + Clone,
     Q: ?Sized + Hash + Eq,
@@ -55,7 +55,7 @@ impl<'a, K, V, S, Q> Future for Wait<'a, K, V, S, Q> where
     }
 }
 
-impl<'a, K, V, S, Q> Drop for Wait<'a, K, V, S, Q> where
+impl<'a, 'b, K, V, S, Q> Drop for Wait<'a, 'b, K, V, S, Q> where
     K: Hash + Eq + Borrow<Q>,
     S: BuildHasher + Clone,
     Q: ?Sized + Hash + Eq,
@@ -70,27 +70,27 @@ impl<'a, K, V, S, Q> Drop for Wait<'a, K, V, S, Q> where
     }
 }
 
-pub struct WaitMut<'a, K, V, S, Q> where
+pub struct WaitMut<'a, 'b, K, V, S, Q> where
     K: Hash + Eq + Borrow<Q>,
     S: BuildHasher + Clone,
     Q: ?Sized + Hash + Eq,
 {
     map: &'a DashMap<K, WaitEntry<V>, S>,
-    key: &'a Q,
+    key: &'b Q,
     idx: usize,
 }
 
-impl<'a, K, V, S, Q> WaitMut<'a, K, V, S, Q> where
+impl<'a, 'b, K, V, S, Q> WaitMut<'a, 'b, K, V, S, Q> where
     K: Hash + Eq + Borrow<Q>,
     S: BuildHasher + Clone,
     Q: ?Sized + Hash + Eq,
 {
-    pub(crate) fn new(map: &'a DashMap<K, WaitEntry<V>, S>, key: &'a Q) -> Self {
+    pub(crate) fn new(map: &'a DashMap<K, WaitEntry<V>, S>, key: &'b Q) -> Self {
         WaitMut { map, key, idx: std::usize::MAX }
     }
 }
 
-impl<'a, K, V, S, Q> Future for WaitMut<'a, K, V, S, Q> where
+impl<'a, 'b, K, V, S, Q> Future for WaitMut<'a, 'b, K, V, S, Q> where
     K: Hash + Eq + Borrow<Q>,
     S: BuildHasher + Clone,
     Q: ?Sized + Hash + Eq,
@@ -114,7 +114,7 @@ impl<'a, K, V, S, Q> Future for WaitMut<'a, K, V, S, Q> where
     }
 }
 
-impl<'a, K, V, S, Q> Drop for WaitMut<'a, K, V, S, Q> where
+impl<'a, 'b, K, V, S, Q> Drop for WaitMut<'a, 'b, K, V, S, Q> where
     K: Hash + Eq + Borrow<Q>,
     S: BuildHasher + Clone,
     Q: ?Sized + Hash + Eq,

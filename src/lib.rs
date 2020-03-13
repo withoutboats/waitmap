@@ -61,20 +61,20 @@ impl<K: Hash + Eq, V, S: BuildHasher + Clone> WaitMap<K, V, S> {
         Some(RefMut { inner: self.map.get_mut(key)? })
     }
 
-    pub fn wait<'a, Q: ?Sized + Hash + Eq>(&'a self, qey: &'a Q)
-        -> impl Future<Output = Option<Ref<'_, K, V, S>>> + 'a
+    pub fn wait<'a: 'f, 'b: 'f, 'f, Q: ?Sized + Hash + Eq>(&'a self, qey: &'b Q)
+        -> impl Future<Output = Option<Ref<'a, K, V, S>>> + 'f
     where
-        K: Borrow<Q> + From<&'a Q>,
+        K: Borrow<Q> + From<&'b Q>,
     {
         let key = K::from(qey);
         self.map.entry(key).or_insert(Waiting(WakerSet::new()));
         Wait::new(&self.map, qey)
     }
 
-    pub fn wait_mut<'a, Q: ?Sized + Hash + Eq>(&'a self, qey: &'a Q)
-        -> impl Future<Output = Option<RefMut<'_, K, V, S>>> + 'a
+    pub fn wait_mut<'a: 'f, 'b: 'f, 'f, Q: ?Sized + Hash + Eq>(&'a self, qey: &'b Q)
+        -> impl Future<Output = Option<RefMut<'a, K, V, S>>> + 'f
     where
-        K: Borrow<Q> + From<&'a Q>,
+        K: Borrow<Q> + From<&'b Q>,
     {
         let key = K::from(qey);
         self.map.entry(key).or_insert(Waiting(WakerSet::new()));
