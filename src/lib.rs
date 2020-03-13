@@ -182,6 +182,26 @@ enum WaitEntry<V> {
     Filled(V),
 }
 
+/// A shared reference to a `WaitMap` key-value pair.
+/// ```
+/// # extern crate async_std;
+/// # extern crate waitmap;
+/// # use async_std::main;
+/// # use waitmap::{Ref, WaitMap};
+/// # #[async_std::main]
+/// # async fn main() -> std::io::Result<()> {
+/// let map: WaitMap<String, i32> = WaitMap::new();
+/// let emma = "Emma Goldman".to_string();
+///
+/// map.insert(emma.clone(), 0);
+/// let kv: Ref<String, i32, _> = map.get(&emma).unwrap();
+///
+/// assert!(*kv.key() == emma);
+/// assert!(*kv.value() == 0);
+/// assert!(kv.pair() == (&"Emma Goldman".to_string(), &0));
+/// # Ok(())
+/// # }
+/// ```
 pub struct Ref<'a, K, V, S> {
     inner: one::Ref<'a, K, WaitEntry<V>, S>,
 }
@@ -203,6 +223,7 @@ impl<'a, K: Eq + Hash, V, S: BuildHasher> Ref<'a, K, V, S> {
     }
 }
 
+/// An exclusive reference to a `WaitMap` key-value pair.
 pub struct RefMut<'a, K, V, S> {
     inner: one::RefMut<'a, K, WaitEntry<V>, S>,
 }
