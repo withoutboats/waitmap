@@ -25,6 +25,7 @@
 //! # extern crate async_std;
 //! # extern crate waitmap;
 //! # use async_std::{main, task};
+//! # use std::time::Duration;
 //! # use std::sync::Arc;
 //! # use waitmap::WaitMap;
 //! # #[async_std::main]
@@ -38,8 +39,9 @@
 //! });
 //!
 //! task::spawn(async move {
+//!     task::sleep(Duration::from_millis(100)).await; // avoid deadlock
 //!     map1.cancel("Voltairine de Cleyre");
-//! }).await;
+//! });
 //!
 //! task::block_on(handle);
 //! # Ok(())
