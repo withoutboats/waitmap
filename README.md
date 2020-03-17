@@ -1,7 +1,7 @@
 # waitmap
 
 [![waitmap](https://docs.rs/waitmap/badge.svg)](https://docs.rs/waitmap/)
-[![version](https://img.shields.io/crates/v/waitmap)](https://crates.io/waitmap/)
+[![version](https://img.shields.io/crates/v/waitmap)](https://crates.io/crates/waitmap/)
 
 Wait Map is an async/await concurrency primitive implemented as a concurrent hashmap. It is built
 on top of the [dashmap](https://github.com/xacrimon/dashmap) concurrent hashmap, with an additional "wait" API.
