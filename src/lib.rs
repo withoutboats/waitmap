@@ -184,6 +184,30 @@ impl<K: Hash + Eq, V, S: BuildHasher + Clone> WaitMap<K, V, S> {
         } else { false }
     }
 
+    /// Cancels all outstanding `waits` on the map.
+    /// ```
+    /// # extern crate async_std;
+    /// # extern crate waitmap;
+    /// # use async_std::{main, stream, prelude::*};
+    /// # use waitmap::WaitMap;
+    /// # #[async_std::main]
+    /// # async fn main() -> std::io::Result<()> {
+    /// let map: WaitMap<String, i32> = WaitMap::new();
+    /// let mut waitstream =
+    ///     stream::from_iter(vec![map.wait("we"), map.wait("are"), map.wait("waiting")]);
+    ///
+    /// map.cancel_all();
+    ///
+    /// let mut num_cancelled = 0;
+    /// while let Some(wait_fut) = waitstream.next().await {
+    ///     assert!(wait_fut.await.is_none());
+    ///     num_cancelled += 1;
+    /// }
+    ///
+    /// assert!(num_cancelled == 3);
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn cancel_all(&self) {
         self.map.retain(|_, entry| {
             if let Waiting(wakers) = entry {
