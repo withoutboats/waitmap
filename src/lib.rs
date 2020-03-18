@@ -95,6 +95,31 @@ impl<K: Hash + Eq, V, S: BuildHasher + Clone> WaitMap<K, V, S> {
         WaitMap { map: DashMap::with_hasher(hasher) }
     }
 
+    /// Inserts a key-value pair into the map.
+    ///
+    /// If the map did not have this key present, `None` is returned.
+    ///
+    /// If there are any pending `wait` calls for this key, they are woken up.
+    ///
+    /// If the map did have this key present, the value is updated and the old value is returned.
+    /// ```
+    /// # extern crate async_std;
+    /// # extern crate waitmap;
+    /// # use async_std::{main, sync::Arc, prelude::*};
+    /// # use waitmap::WaitMap;
+    /// # #[async_std::main]
+    /// # async fn main() -> std::io::Result<()> {
+    /// let map: Arc<WaitMap<String, i32>> = Arc::new(WaitMap::new());
+    ///
+    /// let insert_fut = async { map.insert("hi".to_string(), 0) };
+    /// let wait_fut = map.wait("hi");
+    ///
+    /// let (insert_res, wait_res) = insert_fut.join(wait_fut).await;
+    /// assert!(insert_res.is_none());
+    /// assert!(wait_res.is_some());
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn insert(&self, key: K, value: V) -> Option<V> {
         match self.map.entry(key) {
             Occupied(mut entry)  => {
