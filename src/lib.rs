@@ -84,7 +84,7 @@ impl<K: Hash + Eq, V, S: BuildHasher + Clone> WaitMap<K, V, S> {
     /// # extern crate waitmap;
     /// # use async_std::main;
     /// # use waitmap::WaitMap;
-    /// # use std::collections::hash_map::RandomState;
+    /// use std::collections::hash_map::RandomState;
     /// # #[async_std::main]
     /// # async fn main() -> std::io::Result<()> {
     /// let map: WaitMap<i32, String> = WaitMap::with_hasher(RandomState::new());
