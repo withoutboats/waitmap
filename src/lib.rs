@@ -53,6 +53,7 @@ mod waker_set;
 
 use std::borrow::Borrow;
 use std::collections::hash_map::RandomState;
+use std::fmt;
 use std::future::Future;
 use std::hash::{Hash, BuildHasher};
 use std::mem;
@@ -226,6 +227,25 @@ impl<K: Hash + Eq, V, S: BuildHasher + Clone> WaitMap<K, V, S> {
     }
 }
 
+impl<K: Hash + Eq + fmt::Debug, V: fmt::Debug, S: BuildHasher + Clone> fmt::Debug for WaitMap<K, V, S> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut pmap = f.debug_map();
+        for r in self.map.iter() {
+            let (k, v) = r.pair();
+            pmap.entry(&k, &v);
+        }
+        pmap.finish()
+    }
+}
+
+impl<K: Hash + Eq, V, S: Default + BuildHasher + Clone> Default for WaitMap<K, V, S> {
+    #[inline]
+    fn default() -> Self {
+            Self::with_hasher(Default::default())
+    }
+}
+
+#[derive(Debug)]
 enum WaitEntry<V> {
     Waiting(WakerSet),
     Filled(V),
