@@ -224,6 +224,54 @@ impl<K: Hash + Eq, V, S: BuildHasher + Clone> WaitMap<K, V, S> {
             } else { true }
         })
     }
+
+    /// Fetches the total number of key-value pairs currently stored in the map.
+    /// This returns the number of entries that have actual values,
+    /// excluding outstanding `waits` on the map.
+    ///
+    /// **Locking behaviour:** May deadlock if called when holding a mutable reference into the map.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # extern crate async_std;
+    /// # extern crate waitmap;
+    /// # use async_std::{main, stream, prelude::*};
+    /// # use waitmap::WaitMap;
+    /// # #[async_std::main]
+    /// # async fn main() -> std::io::Result<()> {
+    /// let map: WaitMap<String, i32> = WaitMap::new();
+    ///
+    /// assert_eq!(map.len(), 0);
+    ///
+    /// map.insert(String::from("A real value!"), 1);
+    ///
+    /// assert_eq!(map.len(), 1);
+    ///
+    /// // these 3 waits won't count towards the number of "real" entries
+    /// let mut waitstream =
+    ///     stream::from_iter(vec![map.wait("we"), map.wait("are"), map.wait("waiting")]);
+    ///
+    /// assert_eq!(map.len(), 1);
+    ///
+    /// map.insert(String::from("Another real value!"), 0);
+    ///
+    /// assert_eq!(map.len(), 2);
+    ///
+    /// # map.cancel_all();
+    ///
+    /// # Ok(())
+    /// # }
+    pub fn len(&self) -> usize {
+        self.map.iter().filter(|e| matches!(e.value(), Filled(_))).count()
+    }
+
+    /// Checks if the map is empty or not, excluding outstanding `waits` on the map.
+    ///
+    /// **Locking behaviour:** May deadlock if called when holding a mutable reference into the map.
+    pub fn is_empty(&self) -> bool {
+        self.map.iter().all(|e| !matches!(e.value(), Filled(_)))
+    }
 }
 
 enum WaitEntry<V> {
