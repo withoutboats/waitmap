@@ -49,6 +49,7 @@
 //! ```
 
 mod wait;
+mod remove;
 mod waker_set;
 
 use std::borrow::Borrow;
@@ -61,9 +62,10 @@ use dashmap::DashMap;
 use dashmap::mapref::entry::Entry::*;
 use dashmap::mapref::one;
 
-use WaitEntry::*;
-use wait::{Wait, WaitMut};
-use waker_set::WakerSet;
+use crate::WaitEntry::*;
+use crate::wait::{Wait, WaitMut};
+use crate::waker_set::WakerSet;
+use crate::remove::Remove;
 
 /// An asynchronous concurrent hashmap.
 pub struct WaitMap<K, V, S = RandomState> {
@@ -122,17 +124,17 @@ impl<K: Hash + Eq, V, S: BuildHasher + Clone> WaitMap<K, V, S> {
     /// ```
     pub fn insert(&self, key: K, value: V) -> Option<V> {
         match self.map.entry(key) {
-            Occupied(mut entry)  => {
+            Occupied(mut entry) => {
                 match mem::replace(entry.get_mut(), Filled(value)) {
                     Waiting(wakers) => {
                         drop(entry); // drop early to release lock before waking other tasks
                         wakers.wake();
                         None
                     }
-                    Filled(value)   => Some(value),
+                    Filled(value) => Some(value),
                 }
             }
-            Vacant(slot)     => {
+            Vacant(slot) => {
                 slot.insert(Filled(value));
                 None
             }
@@ -152,26 +154,70 @@ impl<K: Hash + Eq, V, S: BuildHasher + Clone> WaitMap<K, V, S> {
     }
 
     pub fn wait<'a: 'f, 'b: 'f, 'f, Q: ?Sized + Hash + Eq>(&'a self, qey: &'b Q)
-        -> impl Future<Output = Option<Ref<'a, K, V, S>>> + 'f
-    where
-        K: Borrow<Q> + From<&'b Q>,
+                                                           -> impl Future<Output=Option<Ref<'a, K, V, S>>> + 'f
+        where
+            K: Borrow<Q> + From<&'b Q>,
     {
         let key = K::from(qey);
         self.map.entry(key).or_insert(Waiting(WakerSet::new()));
         Wait::new(&self.map, qey)
     }
 
+    /// Wait until a key is available, then remove it from the map and return it.
+    /// If multiple tasks are waiting for the same key, only one will get the key and value, all the
+    /// rest will get None
+    ///
+    /// The typical usage is to call this function *before* an insertion. If you call this function
+    /// after an insertion, it's possible instead of getting a None, you'll be waiting for the next
+    /// time that the key is inserted.
+    pub fn remove_wait<'a: 'f, 'b: 'f, 'f, Q: ?Sized + Hash + Eq>(&'a self, qey: &'b Q)
+                                                                  -> impl Future<Output=Option<(K, V)>> + 'f
+        where
+            K: Borrow<Q> + From<&'b Q>,
+    {
+        let key = K::from(qey);
+        self.map.entry(key).or_insert(Waiting(WakerSet::new()));
+        Remove::new(&self.map, qey)
+    }
+
+    /// Immediate remove a key from the map. If there are any pending `wait`s for the key, they are
+    /// to be returned as None.
+    pub fn remove<'a: 'f, 'b: 'f, 'f, Q: ?Sized + Hash + Eq>(&'a self, qey: &'b Q)
+                                                             -> Option<(K, V)>
+        where
+            K: Borrow<Q> + From<&'b Q>,
+    {
+        let key = K::from(qey);
+        self.cancel(qey);
+        let entry = self.map.entry(key);
+
+        match entry {
+            Occupied(entry) => {
+                let (key, wait_entry) = entry.remove_entry();
+                match wait_entry {
+                    Waiting(_) => {
+                        None
+                    }
+                    Filled(value) => Some((key, value)),
+                }
+            }
+            Vacant(_) => {
+                None
+            }
+        }
+    }
+
     pub fn wait_mut<'a: 'f, 'b: 'f, 'f, Q: ?Sized + Hash + Eq>(&'a self, qey: &'b Q)
-        -> impl Future<Output = Option<RefMut<'a, K, V, S>>> + 'f
-    where
-        K: Borrow<Q> + From<&'b Q>,
+                                                               -> impl Future<Output=Option<RefMut<'a, K, V, S>>> + 'f
+        where
+            K: Borrow<Q> + From<&'b Q>,
     {
         let key = K::from(qey);
         self.map.entry(key).or_insert(Waiting(WakerSet::new()));
         WaitMut::new(&self.map, qey)
     }
 
-    pub fn cancel<Q: ?Sized + Hash + Eq>(&self, key: &Q) -> bool 
+    pub fn cancel<Q: ?Sized + Hash + Eq>(&self, key: &Q) -> bool
         where K: Borrow<Q>
     {
         if let Some((_, entry)) = self.map.remove_if(key, |_, entry| {
@@ -262,8 +308,8 @@ impl<'a, K: Eq + Hash, V, S: BuildHasher> Ref<'a, K, V, S> {
 
     pub fn value(&self) -> &V {
         match self.inner.value() {
-            Filled(value)   => value,
-            _               => panic!()
+            Filled(value) => value,
+            _ => panic!()
         }
     }
 
@@ -284,15 +330,15 @@ impl<'a, K: Eq + Hash, V, S: BuildHasher> RefMut<'a, K, V, S> {
 
     pub fn value(&self) -> &V {
         match self.inner.value() {
-            Filled(value)   => value,
-            _               => panic!()
+            Filled(value) => value,
+            _ => panic!()
         }
     }
 
     pub fn value_mut(&mut self) -> &mut V {
         match self.inner.value_mut() {
-            Filled(value)   => value,
-            _               => panic!()
+            Filled(value) => value,
+            _ => panic!()
         }
     }
 
@@ -302,8 +348,8 @@ impl<'a, K: Eq + Hash, V, S: BuildHasher> RefMut<'a, K, V, S> {
 
     pub fn pair_mut(&mut self) -> (&K, &mut V) {
         match self.inner.pair_mut() {
-            (key, Filled(value))    => (key, value),
-            _                       => panic!(),
+            (key, Filled(value)) => (key, value),
+            _ => panic!(),
         }
     }
 }

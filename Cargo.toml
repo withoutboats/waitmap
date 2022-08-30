@@ -12,7 +12,7 @@ edition = "2018"
 
 [dependencies]
 smallvec = "1.2.0"
-dashmap = "3.7.0"
+dashmap = "5.3.4"
 
 [dev-dependencies.async-std]
 version = "1.5.0"
