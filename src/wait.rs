@@ -26,7 +26,7 @@ impl<'a, 'b, K, V, S, Q> Wait<'a, 'b, K, V, S, Q> where
     Q: ?Sized + Hash + Eq,
 {
     pub(crate) fn new(map: &'a DashMap<K, WaitEntry<V>, S>, key: &'b Q) -> Self {
-        Wait { map, key, idx: std::usize::MAX }
+        Wait { map, key, idx: usize::MAX }
     }
 }
 
@@ -46,7 +46,7 @@ impl<'a, 'b, K, V, S, Q> Future for Wait<'a, 'b, K, V, S, Q> where
                 }
                 Filled(_)        => {
                     let inner = entry.downgrade();
-                    self.idx = std::usize::MAX;
+                    self.idx = usize::MAX;
                     Poll::Ready(Some(Ref { inner }))
                 }
             }
@@ -61,7 +61,7 @@ impl<'a, 'b, K, V, S, Q> Drop for Wait<'a, 'b, K, V, S, Q> where
     Q: ?Sized + Hash + Eq,
 {
     fn drop(&mut self) {
-        if self.idx == std::usize::MAX { return; }
+        if self.idx == usize::MAX { return; }
         if let Some(mut entry) = self.map.get_mut(self.key) {
             if let Waiting(wakers) = entry.value_mut() {
                 wakers.remove(self.idx);
@@ -86,7 +86,7 @@ impl<'a, 'b, K, V, S, Q> WaitMut<'a, 'b, K, V, S, Q> where
     Q: ?Sized + Hash + Eq,
 {
     pub(crate) fn new(map: &'a DashMap<K, WaitEntry<V>, S>, key: &'b Q) -> Self {
-        WaitMut { map, key, idx: std::usize::MAX }
+        WaitMut { map, key, idx: usize::MAX }
     }
 }
 
@@ -105,7 +105,7 @@ impl<'a, 'b, K, V, S, Q> Future for WaitMut<'a, 'b, K, V, S, Q> where
                     Poll::Pending
                 }
                 Filled(_)        => {
-                    self.idx = std::usize::MAX;
+                    self.idx = usize::MAX;
                     Poll::Ready(Some(RefMut { inner: entry }))
                 }
             }
@@ -120,7 +120,7 @@ impl<'a, 'b, K, V, S, Q> Drop for WaitMut<'a, 'b, K, V, S, Q> where
     Q: ?Sized + Hash + Eq,
 {
     fn drop(&mut self) {
-        if self.idx == std::usize::MAX { return; }
+        if self.idx == usize::MAX { return; }
         if let Some(mut entry) = self.map.get_mut(self.key) {
             if let Waiting(wakers) = entry.value_mut() {
                 wakers.remove(self.idx);

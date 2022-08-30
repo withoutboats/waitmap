@@ -16,7 +16,7 @@ impl WakerSet {
     pub fn replace(&mut self, waker: Waker, idx: &mut usize) {
         let len = self.wakers.len();
         if *idx >= len {
-            debug_assert!(len != std::usize::MAX); // usize::MAX is used as a sentinel
+            debug_assert!(len != usize::MAX); // usize::MAX is used as a sentinel
             *idx = len;
             self.wakers.push(Some(waker));
         } else {
